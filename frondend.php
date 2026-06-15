@@ -1959,7 +1959,7 @@ tr:hover td {
                                 </div>
                             </div>
                             <button type="button" class="btn btn-secondary" onclick="showRecoveryBreakdown()" style="width: 100%; margin-top: 8px; justify-content: center; font-size: 0.9rem;">🔍 View Calculation Details</button>
-            
+
                             <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Save Sale Record</button>
                         </form>
                     </div>
@@ -5294,6 +5294,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initial Load - Farms Tab
     loadTabContent('farms');
 });
+  
   
 </script>
 </body>
