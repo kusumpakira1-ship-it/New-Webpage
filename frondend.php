@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!-- v2 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1959,7 +1959,7 @@ tr:hover td {
                                 </div>
                             </div>
                             <button type="button" class="btn btn-secondary" onclick="showRecoveryBreakdown()" style="width: 100%; margin-top: 8px; justify-content: center; font-size: 0.9rem;">🔍 View Calculation Details</button>
-
+            
                             <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Save Sale Record</button>
                         </form>
                     </div>
@@ -4264,6 +4264,65 @@ window.showProcessingBreakdown = function() {
     openBreakdownModal('Processing Calculation Details', html);
 };
 
+window.showProcessingRecordBreakdown = function(id) {
+    const pl = State.processingLogs.find(x => x.id === id);
+    if (!pl) return;
+    const b = State.batches.find(x => x.id === pl.batchId);
+
+    const small       = pl.expenses?.small       ?? pl.broken ?? 0;
+    const damaged     = pl.damaged || 0;
+    const dirty       = pl.dirty || 0;
+    const big         = pl.expenses?.big         ?? 0;
+    const scrap       = pl.scrap || 0;
+    const airline     = pl.expenses?.airline     ?? 0;
+    const cleaningCost   = pl.expenses?.cleaningCost   ?? 0;
+    const paperTrayCost  = pl.expenses?.paperTrayCost  ?? 0;
+    const previousCostPerEgg = pl.expenses?.previousCostPerEgg ?? 0;
+    const previousEggs   = pl.previousEggs || 0;
+    const totalDefective = pl.totalLossEggs || (small + damaged + dirty + big + scrap + airline);
+    const goodEggs       = pl.goodEggs || 0;
+    const originalBatchCost = previousEggs * previousCostPerEgg;
+    const totalNewCost      = pl.newBatchCost || (originalBatchCost + cleaningCost + paperTrayCost);
+    const newCostPerEgg     = pl.newCostPerEgg || 0;
+
+    const html = `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div><strong>Record:</strong> ${pl.id}</div>
+            <div style="font-size:0.8rem; color:var(--text-muted);">${Format.date(pl.date)}</div>
+        </div>
+        <div style="margin-top:4px;"><strong>Batch:</strong> ${pl.batchId} &mdash; ${b?.godownNumber || 'N/A'}</div>
+        <div style="margin-top:6px;"><strong>Eggs Before Processing:</strong> ${Format.number(previousEggs)} &nbsp;|&nbsp; <strong>Cost/Egg:</strong> &#8377;${previousCostPerEgg.toFixed(4)}</div>
+
+        <div style="margin-top:12px; padding-top:8px; border-top:1px solid var(--card-border);"><strong>Defective Breakdown:</strong></div>
+        <div style="margin-left:8px; display:grid; grid-template-columns:1fr 1fr; gap:2px 16px; margin-top:4px; font-size:0.9rem;">
+            <div style="color:var(--color-danger);">Small: <strong>${Format.number(small)}</strong></div>
+            <div style="color:var(--color-danger);">Damaged: <strong>${Format.number(damaged)}</strong></div>
+            <div style="color:var(--color-danger);">Dirty: <strong>${Format.number(dirty)}</strong></div>
+            <div style="color:var(--color-danger);">Big: <strong>${Format.number(big)}</strong></div>
+            <div style="color:var(--color-danger);">Scrap: <strong>${Format.number(scrap)}</strong></div>
+            <div style="color:var(--color-danger);">Airline: <strong>${Format.number(airline)}</strong></div>
+        </div>
+        <div style="margin-top:8px; font-weight:600; color:var(--color-danger);">Total Defective: ${Format.number(totalDefective)} eggs = ${(totalDefective/30).toFixed(2)} trays</div>
+        <div style="margin-top:4px; font-weight:600; color:var(--color-success);">✅ Good Eggs: ${Format.number(goodEggs)} eggs = ${(goodEggs/30).toFixed(2)} trays</div>
+
+        <div style="margin-top:12px; padding-top:8px; border-top:1px solid var(--card-border);"><strong>Landed Cost Calculation:</strong></div>
+        <div style="margin-left:8px; font-size:0.9rem;">
+            <div>Original Batch Cost: ${Format.number(previousEggs)} &times; &#8377;${previousCostPerEgg.toFixed(4)} = ${Format.currency(originalBatchCost)}</div>
+            <div>+ Cleaning Cost: ${Format.currency(cleaningCost)}</div>
+            <div>+ Paper Tray Cost: ${Format.currency(paperTrayCost)}</div>
+            <div style="margin-top:6px; padding-top:6px; border-top:1px dashed var(--card-border);">New Total Cost: ${Format.currency(totalNewCost)}</div>
+        </div>
+        <div style="margin-top:10px; padding:10px; background:rgba(217,119,6,0.06); border-radius:8px; border:1px dashed rgba(217,119,6,0.3); text-align:center;">
+            <div style="font-size:0.85rem; color:var(--text-secondary);">New Landed Price Per Egg</div>
+            <div style="font-size:1.3rem; font-weight:800; color:var(--color-primary);">&#8377;${newCostPerEgg.toFixed(4)}</div>
+            <div style="font-size:0.8rem; color:var(--text-muted);">${Format.currency(totalNewCost)} &divide; ${Format.number(goodEggs)} good eggs</div>
+        </div>
+        <div style="margin-top:10px; padding:8px; background:rgba(225,29,72,0.06); border-radius:6px; font-size:0.85rem; color:var(--color-danger);">⚠️ ${Format.number(totalDefective)} defective eggs added to Recovery Sales stock.</div>
+    `;
+    openBreakdownModal('Processing Calculation Details', html);
+};
+
+
 function buildProcessingLog(id, batchId, small, damaged, dirty, big, scrap, airline, cleaningCost, paperTrayCost, totalDefective, goodEggs, previousEggs, previousCostPerEgg, totalProcessingExpense, newBatchCost, newCostPerEgg, date) {
     return {
         id, batchId,
@@ -4387,6 +4446,7 @@ function renderProcessingTable(filterQuery = '') {
             <td style="font-variant-numeric:tabular-nums;">${Format.currency(paperTrayCost)}</td>
             <td style="color:var(--color-primary);font-weight:600;">&#8377;${parseFloat(pl.newCostPerEgg || 0).toFixed(4)}</td>
             <td>
+                <button class="btn btn-secondary btn-icon-only" onclick="showProcessingRecordBreakdown('${pl.id}')" title="View Calculation" style="width:28px;height:28px;padding:0;font-size:0.8rem;">🔍</button>
                 <button class="btn btn-secondary btn-icon-only" onclick="editProcessingLog('${pl.id}')" title="Edit" style="width:28px;height:28px;padding:0;font-size:0.8rem;">✏️</button>
                 <button class="btn btn-danger btn-icon-only" onclick="deleteProcessingLog('${pl.id}')" title="Delete" style="width:28px;height:28px;padding:0;font-size:0.8rem;">🗑️</button>
             </td>

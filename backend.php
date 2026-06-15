@@ -33,6 +33,7 @@ try {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 
+
     // kus_customers
     $pdo->exec("CREATE TABLE IF NOT EXISTS kus_customers (
         id VARCHAR(50) PRIMARY KEY,
@@ -152,6 +153,7 @@ try {
     // kus_recovery_logs
     $pdo->exec("CREATE TABLE IF NOT EXISTS kus_recovery_logs (
         id VARCHAR(50) PRIMARY KEY,
+        batch_id VARCHAR(50),
         customer_name VARCHAR(255),
         phone VARCHAR(50),
         location VARCHAR(255),
@@ -161,6 +163,14 @@ try {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 
+    // Add batch_id to existing table if it was created before
+    try {
+        $pdo->exec("ALTER TABLE kus_recovery_logs ADD COLUMN batch_id VARCHAR(50) AFTER id");
+    } catch (\PDOException $e) {
+        // Ignore error if column already exists
+    }
+
+    
 } catch (\PDOException $e) {
     http_response_code(500);
     echo json_encode(["error" => "Table verification/creation failed: " . $e->getMessage()]);
@@ -367,6 +377,7 @@ function mapRowToJs($key, $row) {
         case 'recoveryLogs':
             return [
                 'id' => $row['id'],
+                'batchId' => $row['batch_id'],
                 'customerName' => $row['customer_name'],
                 'phone' => $row['phone'],
                 'location' => $row['location'],
@@ -495,6 +506,7 @@ function mapJsToRow($key, $o) {
         case 'recoveryLogs':
             return [
                 ':id' => $o['id'],
+                ':batch_id' => $o['batchId'] ?? null,
                 ':customer_name' => $o['customerName'] ?? null,
                 ':phone' => $o['phone'] ?? null,
                 ':location' => $o['location'] ?? null,
@@ -504,6 +516,7 @@ function mapJsToRow($key, $o) {
             ];
     }
 }
+
 
 function getInsertSql($key) {
     switch ($key) {
@@ -529,8 +542,8 @@ function getInsertSql($key) {
             return "INSERT INTO kus_return_logs (id, date, customer, batch_no, sale_id, sales_date, sold_trays, sold_eggs, damaged, scrap, dirty, small_eggs, big_eggs, airline_eggs, total_returned, returned_trays, loose_eggs) 
                     VALUES (:id, :date, :customer, :batch_no, :sale_id, :sales_date, :sold_trays, :sold_eggs, :damaged, :scrap, :dirty, :small_eggs, :big_eggs, :airline_eggs, :total_returned, :returned_trays, :loose_eggs)";
         case 'recoveryLogs':
-            return "INSERT INTO kus_recovery_logs (id, customer_name, phone, location, sales, total_revenue, date) 
-                    VALUES (:id, :customer_name, :phone, :location, :sales, :total_revenue, :date)";
+            return "INSERT INTO kus_recovery_logs (id, batch_id, customer_name, phone, location, sales, total_revenue, date) 
+                    VALUES (:id, :batch_id, :customer_name, :phone, :location, :sales, :total_revenue, :date)";
     }
 }
 ?>
